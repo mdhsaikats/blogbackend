@@ -1,4 +1,4 @@
-package models
+package main
 
 import "time"
 
@@ -18,8 +18,8 @@ type Post struct {
 	UserID    uint64    `db:"user_id" json:"user_id"`
 	Title     string    `db:"title" json:"title"`
 	Content   string    `db:"content" json:"content"`
-	Thumbnail string    `db:"thumbnail" json:"thumbnail"`
-	Status    string    `db:"status" json:"status"` // draft, published
+	Thumbnail *string   `db:"thumbnail" json:"thumbnail,omitempty"` // pointer allows NULL
+	Status    string    `db:"status" json:"status"`                 // draft, published
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }

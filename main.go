@@ -21,15 +21,6 @@ var jwtSecret = []byte("bangladesh2025")
 
 type ctxKey string
 
-type Post struct {
-	ID        int    `json:"id"`
-	Title     string `json:"title"`
-	Content   string `json:"content"`
-	UserID    int    `json:"user_id,omitempty"`
-	Thumbnail string `json:"thumbnail,omitempty"`
-	Status    string `json:"status,omitempty"`
-}
-
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -130,6 +121,7 @@ func CreatePosts(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+
 	var post Post
 	if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
@@ -139,14 +131,17 @@ func CreatePosts(w http.ResponseWriter, r *http.Request) {
 	// basic trimming and validation
 	post.Title = strings.TrimSpace(post.Title)
 	post.Content = strings.TrimSpace(post.Content)
-	post.Thumbnail = strings.TrimSpace(post.Thumbnail)
+	if post.Thumbnail != nil {
+		trimmed := strings.TrimSpace(*post.Thumbnail)
+		post.Thumbnail = &trimmed
+	}
 	post.Status = strings.TrimSpace(post.Status)
 	if post.Title == "" || post.Content == "" {
 		http.Error(w, "title and content are required", http.StatusBadRequest)
 		return
 	}
 	// limit thumbnail size to avoid excessively long strings
-	if len(post.Thumbnail) > 2048 {
+	if post.Thumbnail != nil && len(*post.Thumbnail) > 2048 {
 		http.Error(w, "thumbnail too long", http.StatusBadRequest)
 		return
 	}
@@ -164,8 +159,8 @@ func CreatePosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, _ := res.LastInsertId()
-	post.ID = int(id)
-	post.UserID = userID
+	post.ID = uint64(id)
+	post.UserID = uint64(userID)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -218,6 +213,33 @@ func jwtAuth(next http.Handler) http.Handler {
 	})
 }
 
+func GetAllPosts(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	rows, err := db.Query("SELECT id, user_id, title, content, thumbnail, status, created_at, updated_at FROM posts")
+	if err != nil {
+		http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var post Post
+		if err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Content, &post.Thumbnail, &post.Status, &post.CreatedAt, &post.UpdatedAt); err != nil {
+			fmt.Println("Scan error:", err)
+			http.Error(w, "Failed to scan post: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		posts = append(posts, post)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(posts)
+}
+
 func main() {
 	var err error
 	db, err = sql.Open("mysql", "root:29112003@tcp(127.0.0.1:3306)/blogdb?parseTime=true")
@@ -237,6 +259,7 @@ func main() {
 	r.Post("/register", registerHandler)
 	r.Post("/login", loginHandler)
 	r.With(jwtAuth).Post("/posts", CreatePosts)
+	r.With(jwtAuth).Get("/all_posts", GetAllPosts)
 
 	fmt.Println("Server is running on port 3000")
 	if err := http.ListenAndServe(":3000", r); err != nil {

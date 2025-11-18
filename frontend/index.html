@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <title>BlogPro - Modern Blogging Platform</title>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white text-black flex flex-col min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b-4 border-black sticky top-0 z-50 backdrop-blur-xl bg-opacity-95">
+        <div class="container mx-auto flex justify-between items-center px-6 py-5">
+            <h1 class="text-3xl font-black text-black cursor-pointer hover:scale-105 transition-transform tracking-tight" onclick="showSection('home')">
+                BlogPro
+            </h1>
+            <nav id="mainNav" class="hidden">
+                <ul class="flex space-x-8">
+                    <li><a href="#" onclick="showSection('home')" class="text-gray-800 hover:text-black font-semibold transition-colors relative group">
+                        Home
+                        <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-black transition-all group-hover:w-full"></span>
+                    </a></li>
+                    <li><a href="#" onclick="showSection('create')" class="text-gray-800 hover:text-black font-semibold transition-colors relative group">
+                        Create Post
+                        <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-black transition-all group-hover:w-full"></span>
+                    </a></li>
+                    <li><a href="#" onclick="showSection('profile')" class="text-gray-800 hover:text-black font-semibold transition-colors relative group">
+                        Profile
+                        <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-black transition-all group-hover:w-full"></span>
+                    </a></li>
+                    <li><a href="#" onclick="logout()" class="text-red-600 hover:text-red-700 font-semibold transition-colors">Logout</a></li>
+                </ul>
+            </nav>
+            <div id="authButtons" class="flex gap-3">
+                <button onclick="showSection('login')" class="px-5 py-2 text-black hover:text-gray-700 font-semibold transition-colors">Login</button>
+                <button onclick="showSection('register')" class="px-5 py-2 bg-black text-white rounded-lg hover:bg-gray-800 font-bold transition-all hover:scale-105">Sign Up</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container mx-auto px-6 py-8 flex-grow">
+        <!-- Login Section -->
+        <section id="loginSection" class="hidden">
+            <div class="max-w-md mx-auto bg-white border-4 border-black rounded-2xl shadow-2xl p-8">
+                <h2 class="text-3xl font-black text-black mb-2 text-center">Welcome Back</h2>
+                <p class="text-gray-600 text-center mb-6">Login to continue your journey</p>
+                <form onsubmit="handleLogin(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-black font-semibold mb-2">Email</label>
+                        <input type="email" id="loginEmail" required 
+                               class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black placeholder-gray-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-black font-semibold mb-2">Password</label>
+                        <input type="password" id="loginPassword" required 
+                               class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black placeholder-gray-400 transition-all">
+                    </div>
+                    <button type="submit" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 font-bold transition-all hover:scale-105">
+                        Login
+                    </button>
+                </form>
+                <p class="text-center mt-6 text-gray-600">
+                    Don't have an account? 
+                    <a href="#" onclick="showSection('register')" class="text-black hover:underline font-bold">Sign up</a>
+                </p>
+            </div>
+        </section>
+
+        <!-- Register Section -->
+        <section id="registerSection" class="hidden">
+            <div class="max-w-md mx-auto bg-white border-4 border-black rounded-2xl shadow-2xl p-8">
+                <h2 class="text-3xl font-black text-black mb-2 text-center">Create Account</h2>
+                <p class="text-gray-600 text-center mb-6">Join our blogging community</p>
+                <form onsubmit="handleRegister(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-black font-semibold mb-2">Name</label>
+                        <input type="text" id="registerName" required 
+                               class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black placeholder-gray-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-black font-semibold mb-2">Email</label>
+                        <input type="email" id="registerEmail" required 
+                               class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black placeholder-gray-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-black font-semibold mb-2">Password</label>
+                        <input type="password" id="registerPassword" required 
+                               class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black placeholder-gray-400 transition-all">
+                    </div>
+                    <button type="submit" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 font-bold transition-all hover:scale-105">
+                        Sign Up
+                    </button>
+                </form>
+                <p class="text-center mt-6 text-gray-600">
+                    Already have an account? 
+                    <a href="#" onclick="showSection('login')" class="text-black hover:underline font-bold">Login</a>
+                </p>
+            </div>
+        </section>
+
+        <!-- Home/Posts Section -->
+        <section id="homeSection">
+            <div class="mb-12 text-center">
+                <h2 class="text-5xl font-black text-black mb-3 tracking-tight">Latest Blog Posts</h2>
+                <p class="text-gray-600 text-lg">Discover amazing stories from our community</p>
+            </div>
+            <div id="postsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Posts will be loaded here -->
+            </div>
+        </section>
+
+        <!-- Create Post Section -->
+        <section id="createSection" class="hidden">
+            <div class="max-w-3xl mx-auto bg-white border-4 border-black rounded-2xl shadow-2xl p-8">
+                <h2 class="text-3xl font-black text-black mb-6">Create New Post</h2>
+                <form onsubmit="handleCreatePost(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-black font-semibold mb-2">Title</label>
+                        <input type="text" id="postTitle" required 
+                               class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black placeholder-gray-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-black font-semibold mb-2">Content</label>
+                        <textarea id="postContent" required rows="12"
+                                  class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black placeholder-gray-400 transition-all resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-black font-semibold mb-2">Thumbnail URL (optional)</label>
+                        <input type="text" id="postThumbnail" placeholder="https://example.com/image.jpg"
+                               class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black placeholder-gray-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-black font-semibold mb-2">Status</label>
+                        <select id="postStatus" 
+                                class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black transition-all">
+                            <option value="draft">Draft</option>
+                            <option value="published">Published</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 font-bold transition-all hover:scale-105">
+                        Create Post
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Profile Section -->
+        <section id="profileSection" class="hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white border-4 border-black rounded-2xl shadow-2xl p-8 mb-6">
+                    <h2 class="text-3xl font-black text-black mb-6">My Profile</h2>
+                    <div id="profileInfo" class="space-y-4">
+                        <!-- Profile info will be loaded here -->
+                    </div>
+                </div>
+                
+                <div class="bg-white border-4 border-black rounded-2xl shadow-2xl p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-black">My Posts</h3>
+                        <button onclick="showSection('create')" class="px-5 py-2 bg-black text-white rounded-lg hover:bg-gray-800 font-bold transition-all hover:scale-105">
+                            New Post
+                        </button>
+                    </div>
+                    <div id="myPostsContainer">
+                        <!-- User's posts will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- View Post Modal -->
+        <section id="viewPostSection" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white border-4 border-black rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white border-b-4 border-black px-6 py-5 flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-black">Post Details</h2>
+                    <button onclick="closePostModal()" class="text-black hover:text-gray-700 text-3xl font-light transition-colors">
+                        &times;
+                    </button>
+                </div>
+                <div id="postDetailContent" class="p-6">
+                    <!-- Post details will be loaded here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Edit Post Modal -->
+        <section id="editPostSection" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white border-4 border-black rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white border-b-4 border-black px-6 py-5 flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-black">Edit Post</h2>
+                    <button onclick="closeEditModal()" class="text-black hover:text-gray-700 text-3xl font-light transition-colors">
+                        &times;
+                    </button>
+                </div>
+                <div class="p-6">
+                    <form onsubmit="handleUpdatePost(event)" class="space-y-5">
+                        <input type="hidden" id="editPostId">
+                        <div>
+                            <label class="block text-black font-semibold mb-2">Title</label>
+                            <input type="text" id="editPostTitle" required 
+                                   class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black placeholder-gray-400 transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-black font-semibold mb-2">Content</label>
+                            <textarea id="editPostContent" required rows="10"
+                                      class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black placeholder-gray-400 transition-all resize-none"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-black font-semibold mb-2">Thumbnail URL (optional)</label>
+                            <input type="text" id="editPostThumbnail" 
+                                   class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black placeholder-gray-400 transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-black font-semibold mb-2">Status</label>
+                            <select id="editPostStatus" 
+                                    class="w-full px-4 py-3 bg-white border-2 border-black rounded-lg focus:ring-4 focus:ring-gray-300 focus:border-black text-black transition-all">
+                                <option value="draft">Draft</option>
+                                <option value="published">Published</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-3">
+                            <button type="submit" class="flex-1 bg-black text-white py-3 rounded-lg hover:bg-gray-800 font-bold transition-all hover:scale-105">
+                                Update Post
+                            </button>
+                            <button type="button" onclick="closeEditModal()" class="px-6 bg-white text-black py-3 rounded-lg hover:bg-gray-200 font-semibold border-2 border-black transition-all">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t-4 border-black mt-20">
+        <div class="container mx-auto px-6 py-10 text-center">
+            <h3 class="text-2xl font-black text-black mb-3">BlogPro</h3>
+            <p class="text-gray-600">&copy; 2025 BlogPro. All rights reserved.</p>
+            <p class="text-gray-500 text-sm mt-2">Built with ❤️ using Go and JavaScript</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 hidden z-50">
+        <div class="bg-black text-white px-6 py-4 rounded-xl shadow-2xl border-4 border-black min-w-[300px]">
+            <p id="toastMessage" class="font-bold"></p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

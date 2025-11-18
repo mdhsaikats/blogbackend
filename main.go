@@ -21,6 +21,22 @@ var jwtSecret = []byte("bangladesh2025")
 
 type ctxKey string
 
+// CORS middleware to allow frontend access
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -240,6 +256,148 @@ func GetAllPosts(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(posts)
 }
 
+func GetPostByID(w http.ResponseWriter, r *http.Request) {
+	postID := chi.URLParam(r, "id")
+	if postID == "" {
+		http.Error(w, "post id required", http.StatusBadRequest)
+		return
+	}
+
+	var post Post
+	err := db.QueryRow("SELECT id, user_id, title, content, thumbnail, status, created_at, updated_at FROM posts WHERE id = ?", postID).Scan(
+		&post.ID, &post.UserID, &post.Title, &post.Content, &post.Thumbnail, &post.Status, &post.CreatedAt, &post.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "post not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to fetch post", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(post)
+}
+
+func UpdatePost(w http.ResponseWriter, r *http.Request) {
+	postID := chi.URLParam(r, "id")
+	if postID == "" {
+		http.Error(w, "post id required", http.StatusBadRequest)
+		return
+	}
+
+	userID := 0
+	if v := r.Context().Value(ctxKey("user_id")); v != nil {
+		if uid, ok := v.(int); ok {
+			userID = uid
+		}
+	}
+	if userID == 0 {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var post Post
+	if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	post.Title = strings.TrimSpace(post.Title)
+	post.Content = strings.TrimSpace(post.Content)
+	if post.Thumbnail != nil {
+		trimmed := strings.TrimSpace(*post.Thumbnail)
+		post.Thumbnail = &trimmed
+	}
+	post.Status = strings.TrimSpace(post.Status)
+
+	if post.Title == "" || post.Content == "" {
+		http.Error(w, "title and content are required", http.StatusBadRequest)
+		return
+	}
+
+	res, err := db.Exec("UPDATE posts SET title = ?, content = ?, thumbnail = ?, status = ?, updated_at = NOW() WHERE id = ? AND user_id = ?",
+		post.Title, post.Content, post.Thumbnail, post.Status, postID, userID)
+	if err != nil {
+		http.Error(w, "failed to update post", http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		http.Error(w, "post not found or unauthorized", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "post updated successfully"})
+}
+
+func DeletePosts(w http.ResponseWriter, r *http.Request) {
+	postID := chi.URLParam(r, "id")
+	if postID == "" {
+		http.Error(w, "post id required", http.StatusBadRequest)
+		return
+	}
+
+	userID := 0
+	if v := r.Context().Value(ctxKey("user_id")); v != nil {
+		if uid, ok := v.(int); ok {
+			userID = uid
+		}
+	}
+	if userID == 0 {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	res, err := db.Exec("DELETE FROM posts WHERE id = ? AND user_id = ?", postID, userID)
+	if err != nil {
+		http.Error(w, "Failed to delete post", http.StatusInternalServerError)
+		return
+	}
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		http.Error(w, "No post found or unauthorized", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func GetMyPosts(w http.ResponseWriter, r *http.Request) {
+	userID := 0
+	if v := r.Context().Value(ctxKey("user_id")); v != nil {
+		if uid, ok := v.(int); ok {
+			userID = uid
+		}
+	}
+	if userID == 0 {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	rows, err := db.Query("SELECT id, user_id, title, content, thumbnail, status, created_at, updated_at FROM posts WHERE user_id = ? ORDER BY created_at DESC", userID)
+	if err != nil {
+		http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var post Post
+		if err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Content, &post.Thumbnail, &post.Status, &post.CreatedAt, &post.UpdatedAt); err != nil {
+			http.Error(w, "Failed to scan post", http.StatusInternalServerError)
+			return
+		}
+		posts = append(posts, post)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(posts)
+}
+
 func main() {
 	var err error
 	db, err = sql.Open("mysql", "root:29112003@tcp(127.0.0.1:3306)/blogdb?parseTime=true")
@@ -256,12 +414,32 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Use(corsMiddleware)
+
+	// API routes
 	r.Post("/register", registerHandler)
 	r.Post("/login", loginHandler)
-	r.With(jwtAuth).Post("/posts", CreatePosts)
-	r.With(jwtAuth).Get("/all_posts", GetAllPosts)
 
-	fmt.Println("Server is running on port 3000")
+	// Post routes
+	r.Get("/posts", GetAllPosts)
+	r.Get("/posts/{id}", GetPostByID)
+	r.With(jwtAuth).Post("/posts", CreatePosts)
+	r.With(jwtAuth).Put("/posts/{id}", UpdatePost)
+	r.With(jwtAuth).Delete("/posts/{id}", DeletePosts)
+	r.With(jwtAuth).Get("/my-posts", GetMyPosts)
+
+	// Serve frontend files
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./frontend/index.html")
+	})
+	r.Get("/style.css", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./frontend/style.css")
+	})
+	r.Get("/script.js", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./frontend/script.js")
+	})
+
+	fmt.Println("Server is running on http://localhost:3000")
 	if err := http.ListenAndServe(":3000", r); err != nil {
 		fmt.Println("Server error:", err)
 	}
